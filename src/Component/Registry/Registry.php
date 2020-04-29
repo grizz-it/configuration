@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Copyright (C) GrizzIT, Inc. All rights reserved.
  * See LICENSE for license details.
  */
+
 namespace GrizzIt\Configuration\Component\Registry;
 
 use GrizzIt\Configuration\Common\RegistryInterface;
@@ -26,7 +28,12 @@ class Registry implements RegistryInterface
      */
     public function register(string $key, $value): void
     {
-        $this->registry[$key][] = $value;
+        if (
+            !isset($this->registry[$key])
+            || !in_array($value, $this->registry[$key])
+        ) {
+            $this->registry[$key][] = $value;
+        }
     }
 
     /**

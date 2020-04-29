@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Copyright (C) GrizzIT, Inc. All rights reserved.
  * See LICENSE for license details.
  */
+
 namespace GrizzIt\Configuration\Tests\Component\Compiler;
 
 use PHPUnit\Framework\TestCase;
