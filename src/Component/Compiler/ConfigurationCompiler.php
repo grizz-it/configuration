@@ -7,10 +7,12 @@
 
 namespace GrizzIt\Configuration\Component\Compiler;
 
+use RuntimeException;
 use GrizzIt\Vfs\Common\FileSystemDriverInterface;
 use GrizzIt\Configuration\Common\LocatorInterface;
 use GrizzIt\Configuration\Common\CompilerInterface;
 use GrizzIt\Configuration\Common\RegistryInterface;
+use GrizzIt\Vfs\Common\FileSystemNormalizerInterface;
 use GrizzIt\Configuration\Component\Registry\Registry;
 use GrizzIt\Configuration\Component\Configuration\PackageLocator;
 
@@ -38,16 +40,34 @@ class ConfigurationCompiler implements CompilerInterface
     private $registry;
 
     /**
+     * Contains a list of files which have been loaded previously and should not be loaded again.
+     *
+     * @var string[]
+     */
+    private $ignoreFiles = [];
+
+    /**
+     * Contains the nesting limit for loading sequences.
+     *
+     * @var int
+     */
+    private $nestingLimit;
+
+    /**
      * Constructor
      *
      * @param FileSystemDriverInterface $driver
+     * @param RegistryInterface $registy
+     * @param int $nestingLimit
      */
     public function __construct(
         FileSystemDriverInterface $driver,
-        RegistryInterface $registry = null
+        RegistryInterface $registry = null,
+        int $nestingLimit = 256
     ) {
         $this->driver = $driver;
         $this->registry = $registry ?? new Registry();
+        $this->nestingLimit = 256;
     }
 
     /**
@@ -69,28 +89,30 @@ class ConfigurationCompiler implements CompilerInterface
      */
     public function compile(): RegistryInterface
     {
-        $packages = PackageLocator::getLocations();
+        $packages = $this->orderPackages(PackageLocator::getLocations());
         $normalizer = $this->driver->getFileSystemNormalizer();
 
         foreach ($packages as $package) {
-            $fileSystem = $this->driver->connect($package);
-
+            $fileSystem = $this->driver->connect($package['path']);
             foreach ($this->locators as $locator) {
                 $directory = rtrim($locator->getLocation(), '/');
 
                 foreach ($fileSystem->list($directory) as $file) {
                     $file = sprintf('%s/%s', $directory, ltrim($file, '/'));
+                    if (!in_array($file, $this->ignoreFiles)) {
+                        if ($fileSystem->isReadable($file)) {
+                            $configuration = $normalizer->normalizeFromFile(
+                                $fileSystem,
+                                $file
+                            );
 
-                    if ($fileSystem->isReadable($file)) {
-                        $configuration = $normalizer->normalizeFromFile(
-                            $fileSystem,
-                            $file
-                        );
+                            $this->registry->register(
+                                $locator->getKey(),
+                                $configuration
+                            );
 
-                        $this->registry->register(
-                            $locator->getKey(),
-                            $configuration
-                        );
+                            $this->ignoreFiles[] = $file;
+                        }
                     }
                 }
             }
@@ -98,6 +120,69 @@ class ConfigurationCompiler implements CompilerInterface
             $this->driver->disconnect($fileSystem);
         }
 
+        $this->ignoreFiles = [];
+
         return $this->registry;
+    }
+
+    /**
+     * Orders packages based on the sequences.
+     *
+     * @param array $packages
+     *
+     * @return array
+     *
+     * @throws RuntimeException When the maximum nesting level is exceeded.
+     */
+    private function orderPackages(array $packages): array
+    {
+        $sortable = [];
+        $unsortable = [];
+        foreach ($packages as $package) {
+            if (!empty($package['name'])) {
+                $sortable[] = $package;
+
+                continue;
+            }
+
+            $unsortable[] = $package;
+        }
+
+        $sorted = [];
+        $sortedCount = count($sortable);
+        $pass = 0;
+        while (count($sorted) !== $sortedCount) {
+            if ($pass >= $this->nestingLimit) {
+                throw new RuntimeException(
+                    'Maximum nesting level passed, for sequenced configuration.'
+                );
+            }
+
+            foreach ($sortable as $key => $package) {
+                if (empty($package['sequences'])) {
+                    $sorted[] = $package;
+                    unset($sortable[$key]);
+
+                    continue;
+                }
+
+                $sortedNames = array_column($sorted, 'name');
+                $add = true;
+                foreach ($package['sequences'] as $sequence) {
+                    if (!in_array($sequence, $sortedNames)) {
+                        $add = false;
+                    }
+                }
+
+                if ($add) {
+                    $sorted[] = $package;
+                    unset($sortable[$key]);
+                }
+            }
+
+            $pass++;
+        }
+
+        return array_merge(array_reverse($sorted), $unsortable);
     }
 }

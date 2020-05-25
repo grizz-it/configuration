@@ -37,6 +37,10 @@ $compiler->addLocator($locator);
 $registry = $compiler->compile();
 ```
 
+Any duplicate relative file paths will only be compiled once. If it occurs in a
+different package as well, which is sequenced prior to the later loaded package,
+then the later package's configuration will be ignored.
+
 ## Registry
 The returned [Registry](../../src/Component/Registry/Registry.php) then contains
 all the compiled configuration. The registry can return the specific `database`

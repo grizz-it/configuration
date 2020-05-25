@@ -18,12 +18,21 @@ class PackageLocator
      * Register a location of package.
      *
      * @param string $location
+     * @param string $name
+     * @param string[] $sequence
      *
      * @return void
      */
-    public static function registerLocation(string $location): void
-    {
-        static::$locations[] = $location;
+    public static function registerLocation(
+        string $location,
+        string $name = '',
+        array $sequences = []
+    ): void {
+        static::$locations[] = [
+            'path' => $location,
+            'name' => $name,
+            'sequences' => $sequences,
+        ];
     }
 
     /**

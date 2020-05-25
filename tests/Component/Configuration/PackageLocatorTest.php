@@ -25,7 +25,8 @@ class PackageLocatorTest extends TestCase
     {
         PackageLocator::registerLocation('foo');
         PackageLocator::registerLocation('bar');
-        $this->assertContains('foo', PackageLocator::getLocations());
-        $this->assertContains('bar', PackageLocator::getLocations());
+        $paths = array_column(PackageLocator::getLocations(), 'path');
+        $this->assertContains('foo', $paths);
+        $this->assertContains('bar', $paths);
     }
 }
