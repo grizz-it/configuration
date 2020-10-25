@@ -8,6 +8,7 @@
 namespace GrizzIt\Configuration\Component\Compiler;
 
 use RuntimeException;
+use GrizzIt\Vfs\Common\FileSystemInterface;
 use GrizzIt\Vfs\Common\FileSystemDriverInterface;
 use GrizzIt\Configuration\Common\LocatorInterface;
 use GrizzIt\Configuration\Common\CompilerInterface;
@@ -96,25 +97,12 @@ class ConfigurationCompiler implements CompilerInterface
             $fileSystem = $this->driver->connect($package['path']);
             foreach ($this->locators as $locator) {
                 $directory = rtrim($locator->getLocation(), '/');
-
-                foreach ($fileSystem->list($directory) as $file) {
-                    $file = sprintf('%s/%s', $directory, ltrim($file, '/'));
-                    if (!in_array($file, $this->ignoreFiles)) {
-                        if ($fileSystem->isReadable($file)) {
-                            $configuration = $normalizer->normalizeFromFile(
-                                $fileSystem,
-                                $file
-                            );
-
-                            $this->registry->register(
-                                $locator->getKey(),
-                                $configuration
-                            );
-
-                            $this->ignoreFiles[] = $file;
-                        }
-                    }
-                }
+                $this->processDirectory(
+                    $directory,
+                    $normalizer,
+                    $fileSystem,
+                    $locator
+                );
             }
 
             $this->driver->disconnect($fileSystem);
@@ -123,6 +111,53 @@ class ConfigurationCompiler implements CompilerInterface
         $this->ignoreFiles = [];
 
         return $this->registry;
+    }
+
+    /**
+     * Processes a directory.
+     *
+     * @param string $directory
+     * @param FileSystemNormalizerInterface $normalizer
+     * @param FileSystemInterface $fileSystem
+     * @param LocatorInterface $locator
+     *
+     * @return void
+     */
+    private function processDirectory(
+        string $directory,
+        FileSystemNormalizerInterface $normalizer,
+        FileSystemInterface $fileSystem,
+        LocatorInterface $locator
+    ): void {
+        foreach ($fileSystem->list($directory) as $file) {
+            $file = sprintf('%s/%s', $directory, ltrim($file, '/'));
+            if (!in_array($file, $this->ignoreFiles)) {
+                if ($fileSystem->isReadable($file)) {
+                    if ($fileSystem->isDirectory($file)) {
+                        $this->processDirectory(
+                            $file,
+                            $normalizer,
+                            $fileSystem,
+                            $locator
+                        );
+
+                        continue;
+                    }
+
+                    $configuration = $normalizer->normalizeFromFile(
+                        $fileSystem,
+                        $file
+                    );
+
+                    $this->registry->register(
+                        $locator->getKey(),
+                        $configuration
+                    );
+
+                    $this->ignoreFiles[] = $file;
+                }
+            }
+        }
     }
 
     /**

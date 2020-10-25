@@ -28,6 +28,7 @@ class ConfigurationCompilerTest extends TestCase
      * @covers ::__construct
      * @covers ::addLocator
      * @covers ::compile
+     * @covers ::processDirectory
      * @covers ::orderPackages
      *
      * @runInSeparateProcess
@@ -58,15 +59,35 @@ class ConfigurationCompilerTest extends TestCase
             ->method('getLocation')
             ->willReturn('configuration/');
 
-        $fileSystem->expects(static::exactly(3))
+        $fileSystem->expects(static::exactly(4))
             ->method('list')
-            ->with('configuration')
-            ->willReturn(['/foo.json']);
+            ->withConsecutive(
+                ['configuration'],
+                ['configuration/bar'],
+                ['configuration'],
+                ['configuration']
+            )->willReturnOnConsecutiveCalls(
+                ['/foo.json', '/bar'],
+                ['baz.json'],
+                ['/foo.json'],
+                []
+            );
 
-        $fileSystem->expects(static::exactly(1))
+        $fileSystem->expects(static::exactly(3))
             ->method('isReadable')
-            ->with('configuration/foo.json')
-            ->willReturn(true);
+            ->withConsecutive(
+                ['configuration/foo.json'],
+                ['configuration/bar'],
+                ['configuration/bar/baz.json']
+            )->willReturnOnConsecutiveCalls(true, true, true);
+
+        $fileSystem->expects(static::exactly(3))
+            ->method('isDirectory')
+            ->withConsecutive(
+                ['configuration/foo.json'],
+                ['configuration/bar'],
+                ['configuration/bar/baz.json']
+            )->willReturnOnConsecutiveCalls(false, true, false);
 
         $fileSystemNormalizer = $this->createMock(
             FileSystemNormalizerInterface::class
@@ -76,12 +97,14 @@ class ConfigurationCompilerTest extends TestCase
             ->method('getFileSystemNormalizer')
             ->willReturn($fileSystemNormalizer);
 
-        $fileSystemNormalizer->expects(static::once())
+        $fileSystemNormalizer->expects(static::exactly(2))
             ->method('normalizeFromFile')
-            ->with($fileSystem, 'configuration/foo.json')
-            ->willReturn(['foo' => 'bar']);
+            ->withConsecutive(
+                [$fileSystem, 'configuration/foo.json'],
+                [$fileSystem, 'configuration/bar/baz.json']
+            )->willReturn(['foo' => 'bar']);
 
-        $locator->expects(static::once())
+        $locator->expects(static::exactly(2))
             ->method('getKey')
             ->willReturn('foo');
 
@@ -101,6 +124,7 @@ class ConfigurationCompilerTest extends TestCase
      * @covers ::__construct
      * @covers ::addLocator
      * @covers ::compile
+     * @covers ::processDirectory
      * @covers ::orderPackages
      *
      * @runInSeparateProcess

@@ -30,7 +30,8 @@ created at `configuration/database/connection.json` with the contents:
 }
 ```
 
-When this file is added a locator needs to be added. If the package is also using the configuration, then it is also responsible for compiling the it.
+When this file is added a locator needs to be added. If the package is also
+using the configuration, then it is also responsible for compiling the it.
 
 ## Further reading
 
