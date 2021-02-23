@@ -16,7 +16,7 @@ class Registry implements RegistryInterface
      *
      * @var array
      */
-    private $registry = [];
+    private array $registry = [];
 
     /**
      * Register a value in the registry.
@@ -26,7 +26,7 @@ class Registry implements RegistryInterface
      *
      * @return void
      */
-    public function register(string $key, $value): void
+    public function register(string $key, mixed $value): void
     {
         if (
             !isset($this->registry[$key])

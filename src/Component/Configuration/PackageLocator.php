@@ -11,8 +11,10 @@ class PackageLocator
 {
     /**
      * Contains the locations used in the project.
+     *
+     * @var array
      */
-    private static $locations = [];
+    private static array $locations = [];
 
     /**
      * Register a location of package.

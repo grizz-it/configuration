@@ -17,7 +17,7 @@ interface RegistryInterface
      *
      * @return void
      */
-    public function register(string $key, $value): void;
+    public function register(string $key, mixed $value): void;
 
     /**
      * Converts the registry to an array.

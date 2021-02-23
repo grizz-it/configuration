@@ -24,35 +24,35 @@ class ConfigurationCompiler implements CompilerInterface
      *
      * @var LocatorInterface[]
      */
-    private $locators = [];
+    private array $locators = [];
 
     /**
      * Contains the driver for traversing over the files.
      *
      * @var FileSystemDriverInterface
      */
-    private $driver;
+    private FileSystemDriverInterface $driver;
 
     /**
      * Contains the registry in which the configuration will be stored.
      *
      * @var RegistryInterface
      */
-    private $registry;
+    private RegistryInterface $registry;
 
     /**
      * Contains a list of files which have been loaded previously and should not be loaded again.
      *
      * @var string[]
      */
-    private $ignoreFiles = [];
+    private array $ignoreFiles = [];
 
     /**
      * Contains the nesting limit for loading sequences.
      *
      * @var int
      */
-    private $nestingLimit;
+    private int $nestingLimit;
 
     /**
      * Constructor

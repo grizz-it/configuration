@@ -16,14 +16,14 @@ class Locator implements LocatorInterface
      *
      * @var string
      */
-    private $key;
+    private string $key;
 
     /**
      * Contains the location which the compiler will seek to find files.
      *
      * @var string
      */
-    private $location;
+    private string $location;
 
     /**
      * Constructor
